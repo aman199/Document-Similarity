@@ -62,8 +62,7 @@ while i<=len(shingle_dict)-1:
             j=j+1
     i=i+1
 
-#Minhashing
-#Input Matrix
+
 
 tot_shingles=[]
 for item in shingle_dict:
