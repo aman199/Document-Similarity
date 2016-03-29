@@ -2,23 +2,38 @@ import os
 import math
 import sys
 
+#The path to the folder containing the text files.
+basepath=sys.argv[1]
+
+#Value of k used while making k-shingles.
 k=(int)(sys.argv[2])
+
+#The type of shingles you have to consider. The two possible values are char/word.  
+# o If the input parameter is set as char, you have to construct k-shingles based on characters.
+# o If the input parameter is set as word, you have to construct k-shingles based on words. 
 type_of_shingles=sys.argv[3]
+
+#alpha:No of hash functions to be used for Min-hashing.
 alpha=(int)(sys.argv[4])
+
+#The threshold value s used in LSH which defines how similar the documents have to be for them to be 
+#considered as similar pair.
+s=(float)(sys.argv[5])
+
 path={}
 i=1
 
-basepath=sys.argv[1]
+
 for fname in os.listdir(basepath):
     path[i]=os.path.join(basepath,fname)
     i=i+1
 
+#Constructing k-shingles of all documents
 shingle_dict={}
 for item in path:
     f=open(path[item])
     shingles=[]
     if(type_of_shingles=="char"):
-
         str=f.read(k)
         shingles.append(str)
         while True:
@@ -28,7 +43,7 @@ for item in path:
             str=str[1:]+c
             shingles.append(str)
         shingle_dict[item]=set(shingles)
-
+    #type_of_shingles=="word"
     else:
         lines=f.readlines()
         words=lines[0].split()
@@ -46,24 +61,23 @@ for item in path:
 for item in shingle_dict:
     print("No of Shingles in File",path[item],":",len(shingle_dict[item]))
 
+#Calculating Jaccard Similarity for each possible pair of documents
 i=1
 while i<=len(shingle_dict)-1:
     j=i+1
     while j<=len(shingle_dict):
-
             union=len(shingle_dict[i])+len(shingle_dict[j])
             sum=0
             for k in shingle_dict[i]:
                 for l in shingle_dict[j]:
                     if k==l:
                         sum=sum+1
-
             print("Jaccard Similarity between",path[i],"and",path[j],":",(float)(sum/(union-sum)))
             j=j+1
     i=i+1
 
 
-
+#Calculating unique no. of shingles to for the input matrix for minhashing.
 tot_shingles=[]
 for item in shingle_dict:
     tot_shingles.extend(shingle_dict[item])
@@ -74,7 +88,6 @@ unique_shingles=sorted(unique_shingles)
 
 dict_matrix={} #input Matrix
 i=0
-
 while i<len(unique_shingles):
     a=[]
     j=1
@@ -86,8 +99,8 @@ while i<len(unique_shingles):
         j=j+1
     dict_matrix[i]=a
     i=i+1
-#print(dict_matrix)
 
+#Calculating different hash values
 dic_hashs={}
 i=1
 while i<=alpha:
@@ -96,10 +109,8 @@ while i<=alpha:
         a.append(((i*k)+1)%(len(unique_shingles)))
     dic_hashs[i]=a
     i=i+1
-#print(dic_hashs)
 
-#Signature Matrix
-
+#Initializing Signature Matrix for Minhashing
 sig_matrix={}
 i=1
 while i<=alpha:
@@ -112,7 +123,7 @@ while i<=alpha:
     i=i+1
 
 
-
+#Calculating the Signature Matrix
 i=0
 while i<len(unique_shingles):
     j=1
@@ -123,13 +134,12 @@ while i<len(unique_shingles):
                 if dic_hashs[k][i]<sig_matrix[k][j-1]:
                     sig_matrix[k][j-1]=dic_hashs[k][i]
                 k=k+1
-
         j=j+1
     i=i+1
 
-
 print("")
 print("Min-Hash Signature for the Documents")
+
 sig_dict={}
 j=1
 while j<=len(path):
@@ -142,7 +152,7 @@ while j<=len(path):
     sig_dict[j]=a
     j=j+1
 
-#print(sig_dict)
+#Now using the min-hashes, compute the Jaccard Similarity between each possible pairs of documents.
 i=1
 while i<=len(shingle_dict)-1:
     j=i+1
@@ -150,17 +160,16 @@ while i<=len(shingle_dict)-1:
             sum=0
             for k in range(alpha):
                 if sig_dict[i][k]==sig_dict[j][k]:
-
                     sum=sum+1
-
             print("Jaccard Similarity between",path[i],"and",path[j],":",(sum/alpha))
             j=j+1
     i=i+1
 
-
+#Locality Sensitive hashing to identify the candidate pairs which should actually be checked for similarity.
 print("")
 print("Candidate pairs obtained using LSH")
 
+#To obtain the optimal value of b(number of bands) and r(number of rows in each band).
 factors = []
 i = 2
 while i < alpha:
@@ -168,11 +177,8 @@ while i < alpha:
         factors.append(i)
     i += 1
 
-
-#print(factors)
 b=alpha
 r=1
-s=(float)(sys.argv[5])
 for i in reversed(factors):
     oldb=b
     oldr=r
@@ -187,32 +193,30 @@ for i in reversed(factors):
         b=oldb
         r=oldr
         break
-#print((int)(b)," ",(int)(r))
+#Optimal values
 b=(int)(b)
 r=(int)(r)
 
+#Dividing the Signature Matrix into b bands of r rows each.
 div_dict={}
 i=1;
 k=0
 while i<=b:
-
     dict={}
     j=1
     while j<=len(path):
         a=[]
         for l in range(k,k+r):
-
             a.append(sig_dict[j][l])
-
         dict[j]=a
         j=j+1
     div_dict[i]=dict
     i=i+1
     k=k+r
-#print(div_dict)
+
+#Now for each band, hashing its portion of each column to a hash table with m buckets.
 hashed={}
 for i in div_dict:
-
     j=1
     a=[]
     while j<=len(path):
@@ -225,9 +229,8 @@ for i in div_dict:
         a.append((int)(sum%(b-(r))))
         j=j+1
     hashed[i]=a
-#print("'hashed")
-#print(hashed)
 
+#the candidate pairs of documents are those that hash to the same bucket for >= 1 band.
 candidates=[]
 for i in hashed:
     j=0
@@ -236,17 +239,16 @@ for i in hashed:
         while k<len(path):
             if hashed[i][j]==hashed[i][k]:
                 c=[]
-
                 c.append(j+1)
                 c.append(k+1)
                 c.sort()
                 if c not in candidates:
                     candidates.append(c)
             k=k+1
-
         j=j+1
 candidates.sort()
 
+#Printing the candidate Pairs.
 for i in candidates:
     a=i[0]
     b=i[1]
