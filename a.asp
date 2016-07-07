@@ -12,61 +12,54 @@ Sub Page_Load(ByVal Sender as Object, ByVal E as EventArgs)
             & "DATA SOURCE=" _
             & Server.MapPath("EmployeeDatabase.mdb;"))
         DBCommand = New OleDbDataAdapter _
-            ("Select LastName & ', ' & FirstName " _
-            & "as EmpName, ID " _
+            ("Select * " _
             & "From Employee " _
             & "Order By LastName, FirstName", DBConn)
         DBCommand.Fill(DSPageData, _
             "Employee")
-        ddlEmps.DataSource = _
+        dgEmps.DataSource = _
             DSPageData.Tables("Employee").DefaultView
-        ddlEmps.DataBind()
+        dgEmps.DataBind()
     End If
-End Sub
-Sub SubmitBtn_Click(Sender As Object, E As EventArgs)
-    Dim DBConn as OleDbConnection
-    Dim DBUpdate As New OleDbCommand
-    DBConn = New OleDbConnection( _
-        "PROVIDER=Microsoft.Jet.OLEDB.4.0;" _
-        & "DATA SOURCE=" _
-        & Server.MapPath("EmployeeDatabase.mdb;"))
-    DBUpdate.CommandText = "Update Employee Set " _
-        & "FirstName = '" & txtFirstName.Text & "' Where " _
-        & "ID = " & ddlEmps.SelectedItem.Value
-        
-    DBUpdate.Connection = DBConn
-    DBUpdate.Connection.Open
-    DBUpdate.ExecuteNonQuery()
 End Sub
 </SCRIPT>
 <HTML>
 <HEAD>
-<TITLE>Updating Access Data</TITLE>
+<TITLE>Creating Bound Columns in a DataGrid Control</TITLE>
 </HEAD>
 <Body LEFTMARGIN="40">
 <form runat="server">
-Select the Employee to Update
 <BR><BR>
-<asp:dropdownlist
-    id="ddlEmps"
-    datatextfield="EmpName" 
-    datavaluefield="ID"
+<asp:Label 
+    id="lblMessage" 
+    Font-Size="12pt"
+    Font-Bold="True"
+    Font-Name="Lucida Console"
+    text="Employee List"
     runat="server"
 />
 <BR><BR>
-New First Name:
-<BR>
-<asp:textbox
-    id="txtFirstName"
-    runat="Server"
-/>
-<BR><BR>
-<asp:button 
-    id="butOK"
-    text="  OK  "
-    onclick="SubmitBtn_Click" 
-    runat="server"
-/>  
+<asp:datagrid
+    id="dgEmps" 
+    runat="server" 
+    autogeneratecolumns="false"
+>
+    <columns>
+        <asp:boundcolumn 
+            HeaderText="Last Name" 
+            DataField="LastName"
+        />
+        <asp:boundcolumn 
+            HeaderText="First Name" 
+            DataField="FirstName"
+        />
+        <asp:boundcolumn 
+            HeaderText="ID" 
+            DataField="ID"
+            DataFormatString="{0:d}"
+        />
+    </columns>
+</asp:datagrid>
 </form>
 </BODY>
 </HTML>
