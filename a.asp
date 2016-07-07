@@ -4,6 +4,27 @@
 <script runat=server>
 Sub Page_Load(ByVal Sender as Object, ByVal E as EventArgs)
     If Not IsPostBack Then
+        BuildDataList
+    End If
+End Sub
+Sub DataList_Delete(sender As Object, e As DataListCommandEventArgs)
+    Dim TheID as String
+    TheID = CType(e.Item.FindControl("lblID"), Label).Text
+    Dim DBConn as OleDbConnection
+    Dim DBDelete As New OleDbCommand
+    DBConn = New OleDbConnection( _
+        "PROVIDER=Microsoft.Jet.OLEDB.4.0;" _
+        & "DATA SOURCE=" _
+        & Server.MapPath("EmployeeDatabase.mdb;"))
+    DBDelete.CommandText = "Delete From Employee Where " _
+        & "ID = " & TheID
+    DBDelete.Connection = DBConn
+    DBDelete.Connection.Open
+    DBDelete.ExecuteNonQuery()
+    DBConn.Close
+    BuildDataList
+End Sub
+Sub BuildDataList ()
         Dim DBConn as OleDbConnection
         Dim DBCommand As OleDbDataAdapter
         Dim DSPageData as New DataSet
@@ -12,20 +33,19 @@ Sub Page_Load(ByVal Sender as Object, ByVal E as EventArgs)
             & "DATA SOURCE=" _
             & Server.MapPath("EmployeeDatabase.mdb;"))
         DBCommand = New OleDbDataAdapter _
-            ("Select * " _
+            ("Select ID, FirstName, LastName " _
             & "From Employee " _
-            & "Order By LastName, FirstName", DBConn)
+            & "Order By FirstName", DBConn)
         DBCommand.Fill(DSPageData, _
             "Employee")
-        dgEmps.DataSource = _
+        dlDepts.DataSource = _
             DSPageData.Tables("Employee").DefaultView
-        dgEmps.DataBind()
-    End If
+        dlDepts.DataBind()   
 End Sub
 </SCRIPT>
 <HTML>
 <HEAD>
-<TITLE>Creating Bound Columns in a DataGrid Control</TITLE>
+<TITLE>Removing Rows from a DataList Control</TITLE>
 </HEAD>
 <Body LEFTMARGIN="40">
 <form runat="server">
@@ -35,31 +55,38 @@ End Sub
     Font-Size="12pt"
     Font-Bold="True"
     Font-Name="Lucida Console"
-    text="Employee List"
+    text="Below is a list of all the Employee"
     runat="server"
 />
 <BR><BR>
-<asp:datagrid
-    id="dgEmps" 
+<asp:datalist 
+    id="dlDepts" 
     runat="server" 
-    autogeneratecolumns="false"
+    OnDeleteCommand="DataList_Delete"
+    gridlines="Both"
+    backcolor="lightyellow"
+    forecolor="darkred"
 >
-    <columns>
-        <asp:boundcolumn 
-            HeaderText="Last Name" 
-            DataField="LastName"
+    <itemtemplate>
+        <B>Department: </B>
+        <asp:label
+            id="lblID"
+            runat="server"
+            text='<%# DataBinder.Eval(Container.DataItem, "ID") %>'
+            visible="False"
         />
-        <asp:boundcolumn 
-            HeaderText="First Name" 
-            DataField="FirstName"
-        />
-        <asp:boundcolumn 
-            HeaderText="ID" 
-            DataField="ID"
-            DataFormatString="{0:d}"
-        />
-    </columns>
-</asp:datagrid>
+        <%# DataBinder.Eval(Container.DataItem, "FirstName") _
+            & " - " _
+            & DataBinder.Eval(Container.DataItem, "LastName") 
+         %>
+         <asp:LinkButton 
+             id="butDelete" 
+              Text="Delete" 
+              CommandName="Delete"
+              runat="server"
+          />
+    </itemtemplate>
+</asp:datalist>
 </form>
 </BODY>
 </HTML>
